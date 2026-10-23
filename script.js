@@ -554,7 +554,7 @@ const app = {
     // Leaving the quiz screen always drops the two-sided Comprehension layout
     if (id !== 'quiz-screen') this._applyCompLayout(false);
     window.scrollTo(0, 0);   // every new screen starts at the top
-    window.speechSynthesis.cancel();
+    hushReadAloud();
   },
 
   /* ── TWO-SIDED COMPREHENSION LAYOUT ── */
@@ -604,7 +604,7 @@ const app = {
     if ((!REVIEW_OPEN && !SHARE_MODE) || isTestDayLocked()) return;
     document.getElementById('welcome-panel').classList.add('hidden');
     this.show('readaloud-screen');
-    setTimeout(speakReadAloudIntro, 150);   // announces itself (show() just cancelled any speech)
+    introTimer = setTimeout(speakReadAloudIntro, 150);   // announces itself (show() just cancelled any speech; leaving first cancels this)
     const btn   = document.getElementById('readaloud-btn');
     const fill  = document.getElementById('readaloud-fill');
     const count = document.getElementById('readaloud-count');
@@ -1737,6 +1737,17 @@ const app = {
     pinModalCallback = null;
   }
 };
+
+/* ── LEAVING ENDS THE READ-ALOUD ──────────────────────
+   Marcos 10/23 (the QPS hub): "if I leave I still hear the read aloud". A new screen, another tab
+   or leaving the site ends everything being read — the Part A recap, the Read Aloud screen, a
+   question — for good, not just the line being said (the next line used to start anyway). */
+function hushReadAloud() {
+  introToken++; clearTimeout(introTimer);
+  stopActiveSpeech();
+}
+window.addEventListener('pagehide', hushReadAloud);
+document.addEventListener('visibilitychange', () => { if (document.hidden) hushReadAloud(); });
 
 /* ── VISIBILITY / UNLOAD ─────────────────────────────── */
 document.addEventListener('visibilitychange', () => {

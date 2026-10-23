@@ -11,6 +11,17 @@
 
 /* ── CONFIG ─────────────────────────────────────────── */
 const REVIEW_OPEN   = true;    // false = students locked out; only Teacher Access works. Set true to open.
+/* TEST DAY (Marcos 10/23: "On test day, [the review] page should be locked unless unlocked by
+   teacher pin"). On these dates (New York time) the review is closed to students; the Teacher PIN
+   opens it on THIS computer for the rest of the day. Keep the same list in the front door
+   (class-portal/the-talent-show/index.html). */
+const TEST_DAYS     = ['2026-10-23'];
+const UNLOCK_KEY    = 'talent_review_unlock_v1';   // = today's date once the Teacher PIN opened it here
+function todayNY() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); }
+function isTestDayLocked() {
+  if (SHARE_MODE || !TEST_DAYS.includes(todayNY())) return false;
+  try { return localStorage.getItem(UNLOCK_KEY) !== todayNY(); } catch (e) { return true; }
+}
 const SHARE_MODE    = !!window.SHARE_MODE;   // set by share.js — a visitor's link, never a student's
 const INSTRUCT_SECS = 20;
 const READ_SECS     = 12;
@@ -590,7 +601,7 @@ const app = {
 
   /* ── READ ALOUD INTRO ── */
   showReadAloudIntro() {
-    if (!REVIEW_OPEN && !SHARE_MODE) return;
+    if ((!REVIEW_OPEN && !SHARE_MODE) || isTestDayLocked()) return;
     document.getElementById('welcome-panel').classList.add('hidden');
     this.show('readaloud-screen');
     setTimeout(speakReadAloudIntro, 150);   // announces itself (show() just cancelled any speech)
@@ -1819,6 +1830,30 @@ function stopConfetti() {
 
 /* ── BOOT ────────────────────────────────────────────── */
 app.init();
+
+/* ── TEST-DAY LOCK: closed during the test; the Teacher PIN opens it on this computer ── */
+(function applyTestDayLock() {
+  if (!REVIEW_OPEN || !isTestDayLocked()) return;
+  const btn = document.querySelector('.lgs-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.classList.add('locked');
+  btn.textContent = '🔒 Closed During the Test';
+  const note = document.createElement('p');
+  note.className = 'locked-note';
+  note.textContent = 'The review is closed today while you take the test. Ask Mr. O if you need it.';
+  const pin = document.createElement('button');
+  pin.type = 'button';
+  pin.className = 'test-day-pin';
+  pin.textContent = '🔑 Teacher PIN: open the review on this computer';
+  pin.onclick = () => app.showPinModal(
+    '🔑 Open the Review',
+    'Enter Teacher PIN to open the review on this computer for the rest of today.',
+    () => { try { localStorage.setItem(UNLOCK_KEY, todayNY()); } catch (e) {} location.reload(); }
+  );
+  btn.insertAdjacentElement('afterend', note);
+  note.insertAdjacentElement('afterend', pin);
+})();
 
 /* ── CLOSED-TO-STUDENTS LOCK ────────────────────────── */
 (function applyReviewLock() {

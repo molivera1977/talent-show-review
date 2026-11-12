@@ -1926,5 +1926,8 @@ if (window.SpotSync) SpotSync.init({
   site: 'talent-show-review', key: STORAGE_KEY, url: SHEET_URL, app,
   who: () => loggedInName,
   skip: () => SHARE_MODE || reviewMode,
-  usable: s => Array.isArray(s.currentBank) && s.currentBank.length > 0 && !!SECTION_LABELS[s.currentSection]
+  usable: s => Array.isArray(s.currentBank) && s.currentBank.length > 0 && !!SECTION_LABELS[s.currentSection],
+  // finished parts follow the student too (Marcos 11/12: "Make finished parts and unlocks follow kids across computers next?" → "Yes, build it")
+  records: [{ key: SCORES_KEY }],
+  refresh: name => applyLocks(name)
 });
